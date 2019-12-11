@@ -239,6 +239,9 @@ class Vector:
             return self.x == other.x and self.y == other.y
         else:
             return NotImplemented
+
+    def __hash__(self):
+        return hash((self.x, self.y))
     
     #def __len__(self):
     #	return int(sqrt(self.x**2 + self.y**2))
