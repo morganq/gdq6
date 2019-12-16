@@ -52,6 +52,13 @@ class MapEdge:
             return self.node1
         raise Exception("node supplied to other_node is not in this edge")
 
+    def next_node(self, prev_edge):
+        if prev_edge.node1 == self.node1 or prev_edge.node2 == self.node1:
+            return self.node2
+        elif prev_edge.node1 == self.node2 or prev_edge.node2 == self.node2:
+            return self.node1
+        raise Exception("edge supplied to next_node is not adjacent")
+
     def __repr__(self):
         return "Edge %s (%s) -> (%s)" % (self.road.kind, self.node1.pt, self.node2.pt)
 

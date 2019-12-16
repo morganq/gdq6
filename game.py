@@ -3,6 +3,7 @@ from collections import OrderedDict
 from level import Level
 import player
 import sound
+import traceback
 
 
 class Game:
@@ -33,7 +34,7 @@ class Game:
             try:
                 fn(*args, **kwargs)
             except Exception as e:
-                print(e)
+                traceback.print_exc()
         return exception_catch_handler
 
     def key_press(self, symbol, modifiers):

@@ -5,6 +5,7 @@ import mapgen as mapgenmodule
 import pyttsx3
 import math
 from polygon import Circle, Polygon, Cross, SelectionCircle
+from pathfinding import StreetSolver
 
 DRAW_COLOR = (0,171,182)
 SHOW_COLOR = (80,191,202)
@@ -352,10 +353,8 @@ class PlayerControl:
                     self.draw_edges = [edge]
                     self.draw_nodes = []
                     self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
-                    if edge.node1 == self.selected_car.last_node:
-                        self.next_node = edge.node2
-                    else:
-                        self.next_node = edge.node1
+                    self.next_node = edge.other_node(self.selected_car.last_node)
+                    print(self.next_node)
 
     def nearest_edge(self, pt, edges):
         closest = (None, 99999999999)
@@ -364,6 +363,7 @@ class PlayerControl:
             if closest[0] is None or dist < closest[1]:
                 closest = (edge, dist)
         return closest
+
 
     def deselect(self):
         self.selected_car = None
@@ -432,27 +432,28 @@ class PlayerControl:
             if self.draw_edges:
                 edge = self.draw_edges[-1]
                 self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
-
-            # End of the path so far
-            if self.path:
-                path_tail = self.path[-1]
-                #path_tail = self.selected_car.next_node
+            
+            if self.draw_nodes:
+                path_tail = self.draw_nodes[-1]
             else:
                 path_tail = self.selected_car.next_node
-
+            
             # Find the nearest node
             mouse_node, dsq = self.nearest_node(map_pt)
 
             # Check if we moved far and need to pathfind
-            if mouse_node != path_tail and dsq < NEAR_DIST ** 2:
-                self.drawing = True
+            if mouse_node != path_tail and len(self.selected_car.directions) > 1:
                 path = StreetSolver(self.mapgen).astar(path_tail, mouse_node)
-                print("---")
-                print("start", path_tail.pt)
-                #self.path = []
+                last_node = None
                 for n in list(path):
-                    if path_tail != n:
-                        print(n.pt)
-                        self.path.append(n)
-                        self.selected_car.given_directions = True
+                    if last_node is not None:
+                        for edge in last_node.edges:
+                            if edge.other_node(last_node) == n:
+                                self.selected_car.directions.append(edge)
+                    else:
+                        if self.selected_car.directions[-1].next_node(self.selected_car.directions[-2]) == n:
+                            last_node = n
+                    
+                    
                 print("---")
+            
