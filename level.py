@@ -228,15 +228,17 @@ class Level:
 
         if not self.game_over:
             min_cars = 1
+            max_cars = 999
             if self.time < 40:
                 min_cars = 1
+                max_cars = 1
             elif self.time < 80:
                 min_cars = 2
+                max_cars = 2
             else:
                 min_cars = 3
-            if self.new_car_timer <= 0 or (len(self.cars) <= min_cars and self.time > 10.0):
+            if (self.new_car_timer <= 0 or (len(self.cars) <= min_cars and self.time > 10.0)) and len(self.cars) < max_cars:
                 if self.tut.showing_message not in ["intro", "draw"]:
-
                     if self.president:
                         self.new_car_timer = 25
                     if self.time < 5:

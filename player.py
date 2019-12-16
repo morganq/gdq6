@@ -354,16 +354,27 @@ class PlayerControl:
                     self.draw_nodes = []
                     self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
                     self.next_node = edge.other_node(self.selected_car.last_node)
-                    print(self.next_node)
 
-    def nearest_edge(self, pt, edges):
+    def nearest_edge(self, pt, edges, same_road_bias=None):
         closest = (None, 99999999999)
         for edge in edges:
             dist = dist_sq_from_line(pt, edge.node1.pt, edge.node2.pt)
+            if same_road_bias:
+                if edge.road == same_road_bias:            
+                    dist /= 8
             if closest[0] is None or dist < closest[1]:
                 closest = (edge, dist)
         return closest
 
+    def nearest_node(self, pt, among=None):
+        if among is None:
+            among = self.mapgen.nodes
+        closest = (None, 99999999999)
+        for node in among:
+            dist = (pt - node.pt).get_sq_length()
+            if closest[0] is None or dist < closest[1]:
+                closest = (node, dist)
+        return closest
 
     def deselect(self):
         self.selected_car = None
@@ -386,12 +397,24 @@ class PlayerControl:
             edges_we_care_about = list(self.next_node.edges)
             if self.draw_nodes:
                 edges_we_care_about.extend(self.draw_nodes[-1].edges)
-            nearest_edge, dsq = self.nearest_edge(map_pt, edges_we_care_about)
+            bias_road = None
+            if self.draw_edges:
+                bias_road = self.draw_edges[-1].road
+            nearest_edge, dsq = self.nearest_edge(map_pt, edges_we_care_about, same_road_bias=bias_road)
 
             handled_edge = False
             
+            if len(self.draw_edges) == 1:
+                if self.nearest_node(map_pt, [self.selected_car.last_node])[1] < NEAR_DIST ** 2:
+                    self.next_node = self.selected_car.last_node
+                    self.draw_edges=[self.selected_car.current_edge]
+                    self.draw_nodes=[]
+                    self.selected_car.last_node = self.selected_car.current_edge.other_node(self.next_node)
+                    self.selected_car.node_t = 1 - self.selected_car.node_t
+                    handled_edge = True
+
             # Check if we changed roads for the current edge
-            if self.draw_nodes:
+            if not handled_edge and self.draw_nodes:
                 if nearest_edge in self.draw_nodes[-1].edges and nearest_edge not in self.draw_edges:
                     alt_edge = nearest_edge
                     if dsq <= NEAR_DIST ** 2:
@@ -427,25 +450,26 @@ class PlayerControl:
                         handled_edge = True
                         #self.game.sound.play("place")
                         break
-
+            
             # Find distance along current edge
             if self.draw_edges:
                 edge = self.draw_edges[-1]
                 self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
+            """
             
             if self.draw_nodes:
                 path_tail = self.draw_nodes[-1]
             else:
-                path_tail = self.selected_car.next_node
+                path_tail = self.selected_car.current_edge.other_node(self.selected_car.last_node)
             
             # Find the nearest node
             mouse_node, dsq = self.nearest_node(map_pt)
 
             # Check if we moved far and need to pathfind
             if mouse_node != path_tail and len(self.selected_car.directions) > 1:
-                path = StreetSolver(self.mapgen).astar(path_tail, mouse_node)
+                path = list(StreetSolver(self.mapgen).astar(path_tail, mouse_node))[1:]
                 last_node = None
-                for n in list(path):
+                for n in path:
                     if last_node is not None:
                         for edge in last_node.edges:
                             if edge.other_node(last_node) == n:
@@ -453,7 +477,5 @@ class PlayerControl:
                     else:
                         if self.selected_car.directions[-1].next_node(self.selected_car.directions[-2]) == n:
                             last_node = n
-                    
-                    
-                print("---")
-            
+                    self.draw_nodes.append(n)
+            """
