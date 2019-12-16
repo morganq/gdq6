@@ -188,9 +188,9 @@ class PlayerControl:
                 spr.visible = True
                 spr.x = target.pt.x + self.game.level.mapgen.x
                 spr.y = target.pt.y + self.game.level.mapgen.y
-                spr.t = min(spr.t + delta_time * 3,1)
-                spr.size = math.sin(spr.t * 2) ** 2 * 30
-                spr.angle = math.sin(spr.t * 2) ** 2 * 1.9 + 3.14159/4
+                spr.t = spr.t + delta_time * 3
+                spr.size = math.sin(min(spr.t,1) * 2) ** 2 * 30
+                spr.angle = math.sin((spr.t + i/5) / 2) ** 5 * 1.9 + 3.14159/4
 
             for i in range(len(self.selected_car.target_nodes), len(self.target_sprites)):
                 self.target_sprites[i].visible = False
@@ -320,6 +320,7 @@ class PlayerControl:
     def mouserelease(self, x, y, button, modifiers):
         if self.drawing:
             self.drawing = False
+            self.game.sound.play("place")
             for spr in self.draw_node_sprites:
                 spr.visible = False
             for spr in self.draw_edge_sprites:
@@ -455,27 +456,3 @@ class PlayerControl:
             if self.draw_edges:
                 edge = self.draw_edges[-1]
                 self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
-            """
-            
-            if self.draw_nodes:
-                path_tail = self.draw_nodes[-1]
-            else:
-                path_tail = self.selected_car.current_edge.other_node(self.selected_car.last_node)
-            
-            # Find the nearest node
-            mouse_node, dsq = self.nearest_node(map_pt)
-
-            # Check if we moved far and need to pathfind
-            if mouse_node != path_tail and len(self.selected_car.directions) > 1:
-                path = list(StreetSolver(self.mapgen).astar(path_tail, mouse_node))[1:]
-                last_node = None
-                for n in path:
-                    if last_node is not None:
-                        for edge in last_node.edges:
-                            if edge.other_node(last_node) == n:
-                                self.selected_car.directions.append(edge)
-                    else:
-                        if self.selected_car.directions[-1].next_node(self.selected_car.directions[-2]) == n:
-                            last_node = n
-                    self.draw_nodes.append(n)
-            """

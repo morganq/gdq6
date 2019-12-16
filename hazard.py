@@ -159,9 +159,10 @@ class NukeHazard(CircleHazard):
 
 
     def on_car_enter(self, car):
-        if car.is_president and self.damage_tick <= 0:
-            self.game.level.take_damage(5)
-            self.damage_tick = 2
+        if car.is_president:
+            if self.damage_tick <= 0:
+                self.game.level.take_damage(5)
+                self.damage_tick = 2
         else:
             car.die()
 
@@ -188,9 +189,10 @@ class MeteorHazard(CircleHazard):
             return
 
     def on_car_enter(self, car):
-        if car.is_president and self.damage_tick <= 0:
-            self.game.level.take_damage(5)
-            self.damage_tick = 2
+        if car.is_president:
+            if self.damage_tick <= 0:
+                self.game.level.take_damage(5)
+                self.damage_tick = 2
         else:
             car.die()            
 

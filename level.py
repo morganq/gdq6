@@ -162,6 +162,7 @@ class Level:
             for star in destroy:
                 star.delete()
             self.stars = self.stars[0:len(self.stars) - amount]
+            self.game.sound.play("die")
 
 
     def update(self, delta_time):
@@ -252,10 +253,10 @@ class Level:
                 self.spawn_hazard()
                 if self.president:
                     self.new_hazard_timer = 8
-                elif self.time < 90:
-                    self.new_hazard_timer = 20 + random.randint(0,12)
+                elif self.time < 120:
+                    self.new_hazard_timer = 30 + random.randint(0,12)
                 else:
-                    self.new_hazard_timer = 9 + random.randint(0,12)
+                    self.new_hazard_timer = 10 + random.randint(0,12)
 
             if len(self.stars) > 40 and self.president == None:
                 self.spawn_car(limo=True)

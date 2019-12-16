@@ -1,3 +1,3 @@
 rm -rf dist/
 rm -rf build/
-python setup.py py2app
+python setup_osx.py py2app
