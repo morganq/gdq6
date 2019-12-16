@@ -432,3 +432,27 @@ class PlayerControl:
             if self.draw_edges:
                 edge = self.draw_edges[-1]
                 self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
+
+            # End of the path so far
+            if self.path:
+                path_tail = self.path[-1]
+                #path_tail = self.selected_car.next_node
+            else:
+                path_tail = self.selected_car.next_node
+
+            # Find the nearest node
+            mouse_node, dsq = self.nearest_node(map_pt)
+
+            # Check if we moved far and need to pathfind
+            if mouse_node != path_tail and dsq < NEAR_DIST ** 2:
+                self.drawing = True
+                path = StreetSolver(self.mapgen).astar(path_tail, mouse_node)
+                print("---")
+                print("start", path_tail.pt)
+                #self.path = []
+                for n in list(path):
+                    if path_tail != n:
+                        print(n.pt)
+                        self.path.append(n)
+                        self.selected_car.given_directions = True
+                print("---")
