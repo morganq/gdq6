@@ -127,6 +127,33 @@ class Circle(Polygon):
             self._radius = value
             self.set_points(self.make_points())
 
+class SelectionCircle(Circle):
+    def __init__(self, *args, **kwargs):
+        self._angle = 0
+        super().__init__(*args, **kwargs)
+
+    def make_points(self):
+        points = []
+        segments = int(self._radius / 4) + 32
+        last_pt = None
+        for i in range(segments + 1):
+            pt = Vector.from_circular(i * 5.5 / segments + self._angle, self._radius)
+            if last_pt:
+                points.append(last_pt)
+                points.append(pt)
+            last_pt = pt
+        return points 
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, value):
+        if value != self._angle:
+            self._angle = value
+            self.set_points(self.make_points())        
+
 class FilledCircle(Circle):
     def __init__(self, x, y, radius, color, line_width, batch):
         super().__init__(x, y, radius, color, line_width, batch, draw_type=pyglet.gl.GL_POLYGON)

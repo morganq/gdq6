@@ -4,7 +4,7 @@ from maphelp import *
 import mapgen as mapgenmodule
 import pyttsx3
 import math
-from polygon import Circle, Polygon, Cross
+from polygon import Circle, Polygon, Cross, SelectionCircle
 
 DRAW_COLOR = (0,171,182)
 SHOW_COLOR = (80,191,202)
@@ -32,6 +32,7 @@ class PlayerControl:
         self.game.window.set_mouse_visible(True)
 
         self._mouse_press_start = Vector(0,0)
+        self.mouse_map_pos = Vector(0,0)
 
         self.selected_car = None
         self.selection_ring = None
@@ -69,12 +70,13 @@ class PlayerControl:
     def set_mapgen(self, mapgen):
         self.mapgen = mapgen
 
-        self.selection_ring = Circle(
+        self.selection_ring = SelectionCircle(
             0, 0, 20,
             SELECTION_COLOR_1, 3,
             self.game.batches['gui'],
         )
         self.selection_ring.visible = False
+        self.selection_ring.angle = 0
 
         self.draw_edge_polygon = Polygon(
             0,0,[Vector(0,0), Vector(0,0)],SELECTION_COLOR_2, 8,self.game.batches['path']
@@ -141,8 +143,23 @@ class PlayerControl:
                             s = "Take the next %s onto %s" % (direction, road_name)
                             self.say(s)
 
+    def update_cursor(self):
+        if self.drawing:
+            self.game.set_cursor('crosshair')
+        else:
+            for car in self.game.level.cars:
+                dv = car.map_pos - self.mouse_map_pos
+                if car != self.selected_car and dv.get_sq_length() <= car.radius ** 2:
+                    car.hover = True
+                    self.game.set_cursor('hand')
+                else:
+                    car.hover = False
+                    self.game.set_cursor(None)
+
     def update(self, delta_time):
         self.time += delta_time
+
+        self.update_cursor()
         
         self.update_speaker(delta_time)
         self.selection_ring.visible = self.selected_car is not None
@@ -156,6 +173,7 @@ class PlayerControl:
             self.selection_ring.visible = True
             self.selection_ring.x = self.selected_car.x
             self.selection_ring.y = self.selected_car.y
+            self.selection_ring.angle += delta_time * 6.2818
             self.selection_ring.radius = math.sin(self.time * 2) * 1.5 + (self.selected_car.radius + 5)
 
             for i,target in enumerate(self.selected_car.target_nodes):
@@ -275,6 +293,7 @@ class PlayerControl:
     def mousemove(self, x, y, dx, dy):
         gotit = False
         map_pt = Vector(x - self.game.level.mapgen.x,y - self.game.level.mapgen.y)
+        self.mouse_map_pos = map_pt
         for edge in self.game.level.mapgen.edges:
             dsq = dist_sq_from_line(map_pt, edge.node1.pt, edge.node2.pt)
             if dsq < NEAR_DIST ** 2:
@@ -296,19 +315,18 @@ class PlayerControl:
         if not gotit:
             self.inspect_label.text = ""
 
-        for car in self.game.level.cars:
-            dv = Vector(car.x, car.y) - Vector(x,y)
-            if car != self.selected_car and dv.get_sq_length() <= car.radius ** 2:
-                car.hover = True
-            else:
-                car.hover = False
-
 
     def mouserelease(self, x, y, button, modifiers):
-        # Selecting a car
-        if button == 1:
-            if self.drawing:
-                self.game.sound.play("place")            
+        if self.drawing:
+            self.drawing = False
+            for spr in self.draw_node_sprites:
+                spr.visible = False
+            for spr in self.draw_edge_sprites:
+                spr.visible = False
+
+    def mousepress(self, x, y, button, modifiers):
+        self._mouse_press_start = Vector(x,y)
+        if button == 1:        
             mouse_pos = Vector(x,y)
             # Only counts as a click if you didn't move mouse much
             if (mouse_pos - self._mouse_press_start).get_sq_length() < 5 * 5:
@@ -317,47 +335,27 @@ class PlayerControl:
                     dv = Vector(car.x, car.y) - Vector(x,y)
                     if dv.get_sq_length() <= car.radius ** 2:
                         hit = True
-                        self.selected_car = car
-                        self.draw_nodes = []
-                        self.draw_edges = []
-                        self.draw_edge_final_pt = None
-                        for spr in self.target_sprites:
-                            spr.t = 0
+                        self.select(car)
                         break
                 if not hit:
-                    self.deselect()
+                    self.deselect()                   
+                    self.speaker.stop()
+
+            if self.selected_car:
+                edge = self.selected_car.current_edge
+                map_pt = Vector(x - self.game.level.mapgen.x,y - self.game.level.mapgen.y)
+                dsq = dist_sq_from_line(map_pt, edge.node1.pt, edge.node2.pt)
+                if dsq <= NEAR_DIST ** 2:
+                    self.drawing = True
+                    if self.selected_car.given_directions:
+                        self.say("Recalculating", time_adjust=2)
+                    self.draw_edges = [edge]
                     self.draw_nodes = []
-                    self.draw_edges = []
-                    self.draw_edge_final_pt = None                    
-                    try:
-                        pass
-                        #self.speaker.stop()
-                    except Exception as e:
-                        print(e)
-            self.drawing = False
-            for spr in self.draw_node_sprites:
-                spr.visible = False
-            for spr in self.draw_edge_sprites:
-                spr.visible = False
-
-
-    def mousepress(self, x, y, button, modifiers):
-        self._mouse_press_start = Vector(x,y)
-        if self.selected_car:
-            edge = self.selected_car.current_edge
-            map_pt = Vector(x - self.game.level.mapgen.x,y - self.game.level.mapgen.y)
-            dsq = dist_sq_from_line(map_pt, edge.node1.pt, edge.node2.pt)
-            if dsq <= NEAR_DIST ** 2:
-                self.drawing = True
-                if self.selected_car.given_directions:
-                    self.say("Recalculating", time_adjust=2)
-                self.draw_edges = [edge]
-                self.draw_nodes = []
-                self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
-                if edge.node1 == self.selected_car.last_node:
-                    self.next_node = edge.node2
-                else:
-                    self.next_node = edge.node1
+                    self.draw_edge_final_pt = project_pt_to_line_seg(map_pt, edge.node1.pt, edge.node2.pt)
+                    if edge.node1 == self.selected_car.last_node:
+                        self.next_node = edge.node2
+                    else:
+                        self.next_node = edge.node1
 
     def nearest_edge(self, pt, edges):
         closest = (None, 99999999999)
@@ -369,6 +367,17 @@ class PlayerControl:
 
     def deselect(self):
         self.selected_car = None
+        self.draw_nodes = []
+        self.draw_edges = []
+        self.draw_edge_final_pt = None   
+        
+    def select(self, car):
+        self.selected_car = car
+        self.draw_nodes = []
+        self.draw_edges = []
+        self.draw_edge_final_pt = None        
+        for spr in self.target_sprites:
+            spr.t = 0        
 
     def mousedrag(self, x, y, dx, dy, buttons, modifiers):
         self.mousemove(x,y,dx,dy)

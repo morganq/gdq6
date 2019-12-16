@@ -68,6 +68,9 @@ class Game:
             self.level.update(delta_time)
             self.playercontrol.update(delta_time)
 
+    def set_cursor(self, cursor):
+        self.window.set_mouse_cursor(self.window.get_system_mouse_cursor(cursor))
+
     def run(self):
         self.batches['map'] = pyglet.graphics.Batch()
         self.batches['path'] = pyglet.graphics.Batch()
