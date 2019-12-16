@@ -5,14 +5,14 @@ class Sound:
         self.game = game
         self.sounds = {
             'click':'resources/gridsnap.ogg',
-            'place':'resources/place.wav',
-            'star':'resources/starding.wav',
-            'swipe':'resources/swipe.wav',
-            'warning':'resources/warning.wav',
-            'nuke':'resources/nuke.wav',
-            'meteor':'resources/meteor.wav',
-            'riot':'resources/riot.wav',
-            'die':'resources/die.wav',
+            'place':'resources/place.ogg',
+            'star':'resources/starding.ogg',
+            'swipe':'resources/swipe.ogg',
+            'warning':'resources/warning.ogg',
+            'nuke':'resources/nuke.ogg',
+            'meteor':'resources/meteor.ogg',
+            'riot':'resources/riot.ogg',
+            'die':'resources/die.ogg',
         }
         self._sounds = {}
         for name,resource in self.sounds.items():
